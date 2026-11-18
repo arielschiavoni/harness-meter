@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 
-type WatermarkKey = "session" | "message";
+export type WatermarkKey = "session" | "message" | "session_v2" | "message_v2";
 
 let stateDb: Database | null = null;
 
@@ -16,7 +16,7 @@ export function openStateDb(path: string): void {
   const init = stateDb.prepare(
     "INSERT OR IGNORE INTO watermark (key, value) VALUES (?, 0)"
   );
-  for (const key of ["session", "message"] as WatermarkKey[]) {
+  for (const key of ["session", "message", "session_v2", "message_v2"]) {
     init.run(key);
   }
 }

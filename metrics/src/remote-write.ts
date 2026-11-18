@@ -55,7 +55,7 @@ async function postToPrometheus(url: string, body: Buffer): Promise<void> {
       "Content-Encoding": "snappy",
       "X-Prometheus-Remote-Write-Version": "0.1.0",
     },
-    body,
+    body: new Uint8Array(body),
   });
 
   if (!resp.ok) {
