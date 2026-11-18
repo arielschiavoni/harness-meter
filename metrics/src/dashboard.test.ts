@@ -49,7 +49,7 @@ test("provisioned dashboard uses shared harness metrics and filters every panel"
   expect(isDashboard(source)).toBe(true);
   if (!isDashboard(source)) throw new Error("Invalid provisioned Grafana dashboard");
 
-  expect(source.title).toBe("Harness Metrics");
+  expect(source.title).toBe("Harness Meter");
   expect(source.templating.list.map((variable) => variable.name)).toEqual(["harness", "provider", "model"]);
   expect(source.templating.list[0]?.query).toContain("label_values(harness_usage_tokens, harness)");
 

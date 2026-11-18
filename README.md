@@ -1,8 +1,6 @@
-# Harness Metrics Dashboard
+# Harness Meter
 
 A read-only metrics collector and dashboard for coding harnesses. It currently supports [OpenCode](https://github.com/anomalyco/opencode) v1 and v2 SQLite databases and [Pi](https://pi.dev) session JSONL files. The exporter normalizes their usage into one Prometheus data model; Grafana provides a combined view with Harness, Provider, and Model filters.
-
-The repository itself has not been renamed. Suggestions for its eventual name are listed below.
 
 ## What the dashboard shows
 
@@ -130,22 +128,11 @@ The Compose file uses fresh `harness_prometheus_data` and `harness_metrics_state
 docker compose up -d --build
 ```
 
-Compose creates the new Prometheus and exporter-state volumes automatically. The old `prometheus_data` and `metrics_state` volumes are left unattached as a rollback/archive copy; they are not automatically deleted. Verify the unified dashboard and historical totals before manually removing any old volumes. If you later rename the repository directory, keep the same Compose project name (set `COMPOSE_PROJECT_NAME` to its previous value) to keep reusing `grafana_data`; otherwise Compose may create a separate Grafana volume. Do **not** use `docker compose down -v` for this migration—it also deletes Grafana data.
+Compose creates the new Prometheus and exporter-state volumes automatically. The old `prometheus_data` and `metrics_state` volumes are left unattached as a rollback/archive copy; they are not automatically deleted. Verify the unified dashboard and historical totals before manually removing any old volumes. Compose names volumes after the project, which defaults to the name of the directory containing `docker-compose.yml`. If you clone or move the repository into a directory with a different name, set `COMPOSE_PROJECT_NAME` to the previous name (for example, in a `.env` file) to keep using the existing Grafana and Prometheus volumes. Otherwise Compose creates new, empty volumes. Do **not** use `docker compose down -v` for this migration—it also deletes Grafana data.
 
 Before cutover, check that the source databases and Pi session files still contain the historical usage you want. Deleted or pruned source data cannot be recovered by re-importing. For live SQLite databases, the database, WAL, and SHM must be available together. If the old Prometheus store contains history absent from the source files, preserve that old volume; the clean rebuild cannot recreate those missing records.
 
 To re-import after changing the configured source set, use fresh `harness_metrics_state` and `harness_prometheus_data` volumes. Keep the existing Grafana volume. Check Prometheus logs and the exporter logs for out-of-order or rejected samples before discarding the old volumes.
-
-## Repository name suggestions
-
-The eventual repository name is still yours to choose. Candidates:
-
-- **`harness-metrics`** — recommended; concise and covers collection plus visualization.
-- `harness-usage` — emphasizes session, token, cache, and cost accounting.
-- `harness-observatory` — broader, if comparative analysis becomes a larger focus.
-- `harness-metrics-dashboard` — explicit about visualization, but longer and less representative of collection.
-
-The current working title is **Harness Metrics Dashboard**. No repository rename has been performed.
 
 ## Development
 
@@ -158,17 +145,9 @@ bun run typecheck
 
 Use Bun 1.4.4, matching the Docker image. Tests use isolated SQLite fixtures and temporary Pi JSONL sessions; the exporter integration tests use a local HTTP receiver. They do not modify real harness data or contact Prometheus.
 
-## Technical decisions
+## Decision records
 
-- **Harness terminology:** OpenCode and Pi are harnesses. Shared Prometheus metric families use the `harness_*` prefix.
-- **Source-derived rebuild:** Prometheus is derived storage; available source history is the preferred basis for unified metrics. Old volumes are retained for rollback, not combined with the new dashboard.
-- **Stable event accounting:** Persist event identities and delivery points before remote write, count each session once, deduplicate Pi fork history, and avoid per-event metric labels. Same-millisecond late collisions are shifted by a millisecond rather than dropped or assigned unbounded labels.
-- **All recorded Pi usage:** Include auxiliary usage with honest `unknown` attribution; avoid double-counting reasoning/cache subsets.
-- **OpenCode v1 tables are read even after an upgrade:** The v2 migration leaves the v1 tables in place but may not copy every message. Reading only v2 silently lost real v1 history. Original v1 rows define `opencode_v1`; v2 copies with the same ID are skipped.
-- **Least-privilege mounts:** Mount only the OpenCode database files and the Pi sessions directory, read-only. Do not mount the OpenCode data directory, because it contains credentials.
-- **No new runtime dependencies:** Pi JSONL parsing, hashing, durable state, and Prometheus write handling use the existing Bun/TypeScript runtime and dependencies.
-- **Local-only, login-free Grafana:** Anonymous Admin access avoids a pointless login for a single local user. Binding both ports to `127.0.0.1` keeps that safe. Grafana and Prometheus image versions are pinned to exact releases; update them explicitly.
-- **Pinned runtime:** Keep Bun and `bun-types` pinned to 1.4.4 for reproducible checks and to avoid a reproduced Bun 1.3.14 crash on the tested ARM64/Linux 7.0 Docker host.
+Architecture decisions, such as how sources are read, how usage is counted and how the local stack is secured, are recorded as [MADR](https://adr.github.io/madr/) records in [`docs/decisions/`](docs/decisions/index.md). Read the relevant records before changing related code.
 
 ## Troubleshooting
 

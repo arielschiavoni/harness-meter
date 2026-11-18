@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "opencode-metrics-exporter",
+      "name": "harness-meter-exporter",
       "dependencies": {
         "protobufjs": "^7.4.0",
         "snappy": "^7.3.3",

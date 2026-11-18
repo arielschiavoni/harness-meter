@@ -1,5 +1,5 @@
 {
-  "name": "opencode-metrics-exporter",
+  "name": "harness-meter-exporter",
   "version": "1.0.0",
   "private": true,
   "scripts": {

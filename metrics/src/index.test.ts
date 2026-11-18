@@ -7,7 +7,7 @@ import { uncompress } from "snappy";
 
 for (const schema of ["v1", "v2"] as const) {
   test(`${schema} source retries an interrupted remote write without duplicating metrics`, async () => {
-    const directory = mkdtempSync(join(tmpdir(), "harness-metrics-"));
+    const directory = mkdtempSync(join(tmpdir(), "harness-meter-"));
     const dbPath = join(directory, "opencode.db");
     const statePath = join(directory, "state.db");
     const piPath = join(directory, "pi-sessions");

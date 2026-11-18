@@ -9,6 +9,6 @@ storage:
   tsdb:
     out_of_order_time_window: 300d
 
-# No scrape jobs needed — the harness metrics exporter pushes via remote write.
+# No scrape jobs needed — the Harness Meter exporter pushes via remote write.
 # remote-write-receiver is enabled via --web.enable-remote-write-receiver in docker-compose.yml.
 scrape_configs: []

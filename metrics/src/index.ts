@@ -131,7 +131,7 @@ async function flushPendingPoints(): Promise<void> {
 
 async function processBatch(): Promise<void> {
   const started = Date.now();
-  console.log(`\n[${new Date().toISOString()}] Starting harness metrics cycle...`);
+  console.log(`\n[${new Date().toISOString()}] Starting Harness Meter cycle...`);
   try {
     // Deliver durable outbox rows before reading new source data. If a previous
     // write was interrupted after Prometheus accepted a request, retries replay
@@ -150,7 +150,7 @@ async function processBatch(): Promise<void> {
   console.log(`[${new Date().toISOString()}] Cycle complete in ${Date.now() - started}ms`);
 }
 
-console.log("Harness metrics exporter starting...");
+console.log("Harness Meter exporter starting...");
 console.log(`  state.db       : ${STATE_DB}`);
 console.log(`  opencode db(s) : ${configuredOpenCodeDatabases().join(", ") || "disabled"}`);
 console.log(`  pi sessions    : ${PI_SESSIONS_DIR || "disabled"}`);
