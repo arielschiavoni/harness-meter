@@ -2,15 +2,37 @@ services:
   metrics-exporter:
     build: ./metrics
     volumes:
-      # SQLite WAL mode uses three files: the main DB, a WAL (Write-Ahead Log) for new writes,
-      # and a SHM (Shared Memory) index. All three must be mounted separately to prevent
-      # virtiofs inode caching issues on macOS/Podman that can hide new data.
-      - ${HOME}/.local/share/opencode/opencode.db:/data/opencode.db:ro
-      - ${HOME}/.local/share/opencode/opencode.db-wal:/data/opencode.db-wal:ro
-      - ${HOME}/.local/share/opencode/opencode.db-shm:/data/opencode.db-shm:ro
-      - metrics_state:/state
+      # Mount only the OpenCode database files, not the whole OpenCode data
+      # directory (it also holds auth.json). SQLite WAL mode needs all three
+      # files; mounting them separately also avoids virtiofs inode caching
+      # issues on macOS/Podman that can hide new data. A missing source file is
+      # reported as an error instead of Docker creating an empty directory.
+      - type: bind
+        source: ${OPENCODE_HOST_DIR:-${HOME}/.local/share/opencode}/opencode.db
+        target: /data/opencode/opencode.db
+        read_only: true
+        bind: { create_host_path: false }
+      - type: bind
+        source: ${OPENCODE_HOST_DIR:-${HOME}/.local/share/opencode}/opencode.db-wal
+        target: /data/opencode/opencode.db-wal
+        read_only: true
+        bind: { create_host_path: false }
+      - type: bind
+        source: ${OPENCODE_HOST_DIR:-${HOME}/.local/share/opencode}/opencode.db-shm
+        target: /data/opencode/opencode.db-shm
+        read_only: true
+        bind: { create_host_path: false }
+      - type: bind
+        source: ${PI_SESSIONS_HOST_DIR:-${HOME}/.pi/agent/sessions}
+        target: /data/pi-sessions
+        read_only: true
+        bind: { create_host_path: false }
+      - harness_metrics_state:/state
     environment:
-      - OPENCODE_DB=/data/opencode.db
+      # Comma-separated list of OpenCode databases; empty disables OpenCode.
+      - OPENCODE_DB=/data/opencode/opencode.db
+      # Empty disables Pi.
+      - PI_SESSIONS_DIR=/data/pi-sessions
       - STATE_DB=/state/metrics-state.db
       - PROMETHEUS_URL=http://prometheus:9090
       - POLL_INTERVAL_MS=60000
@@ -20,7 +42,7 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v3.12.0
+    image: prom/prometheus:v3.16.0
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -29,17 +51,22 @@ services:
       - "--web.enable-lifecycle"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - harness_prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      # Local only: Prometheus has no authentication.
+      - "127.0.0.1:9090:9090"
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:12.4.4
+    image: grafana/grafana:13.3.1
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Local, single-user stack: no login. Anonymous visitors get the Admin
+      # role so dashboards stay editable; the login form is hidden.
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/opencode.json
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/harness.json
       - GF_DATE_FORMATS_INTERVAL_HOUR=DD/MM HH:mm
       - GF_DATE_FORMATS_INTERVAL_DAY=DD/MM
       - GF_DATE_FORMATS_INTERVAL_MONTH=MM/YYYY
@@ -49,12 +76,13 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "3100:3000"
+      # Local only: anyone who can reach this port is a Grafana admin.
+      - "127.0.0.1:3100:3000"
     depends_on:
       - prometheus
     restart: unless-stopped
 
 volumes:
-  prometheus_data:
+  harness_prometheus_data:
   grafana_data:
-  metrics_state:
+  harness_metrics_state:

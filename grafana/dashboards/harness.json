@@ -1,16 +1,35 @@
 {
-  "title": "OpenCode",
+  "title": "Harness Metrics",
   "uid": "opencode",
-  "tags": ["opencode"],
+  "tags": [
+    "harness"
+  ],
   "timezone": "browser",
   "refresh": "1m",
   "schemaVersion": 39,
   "time": {
-    "from": "now/M",
+    "from": "now-90d",
     "to": "now"
   },
   "templating": {
     "list": [
+      {
+        "name": "harness",
+        "label": "Harness",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PBFA97CFB590B2093"
+        },
+        "query": "label_values(harness_usage_tokens, harness)",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "refresh": 2
+      },
       {
         "name": "provider",
         "label": "Provider",
@@ -19,7 +38,7 @@
           "type": "prometheus",
           "uid": "PBFA97CFB590B2093"
         },
-        "query": "label_values(opencode_llm_call_cost_usd, provider)",
+        "query": "label_values(harness_usage_tokens{harness=~\"$harness\"}, provider)",
         "multi": true,
         "includeAll": true,
         "current": {
@@ -36,7 +55,7 @@
           "type": "prometheus",
           "uid": "PBFA97CFB590B2093"
         },
-        "query": "label_values(opencode_llm_call_cost_usd{provider=~\"$provider\"}, model)",
+        "query": "label_values(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\"}, model)",
         "multi": true,
         "includeAll": true,
         "current": {
@@ -79,7 +98,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"]
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "colorMode": "background",
         "graphMode": "none"
@@ -104,7 +125,7 @@
       },
       "targets": [
         {
-          "expr": "sum(sum_over_time(opencode_session_total{provider=~\"$provider\",model=~\"$model\"}[$__range]))",
+          "expr": "sum(sum_over_time(harness_session_count{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
           "refId": "A"
         }
       ]
@@ -125,7 +146,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"]
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "colorMode": "background",
         "graphMode": "none"
@@ -150,7 +173,7 @@
       },
       "targets": [
         {
-          "expr": "sum(sum_over_time(opencode_llm_call_tokens{provider=~\"$provider\",model=~\"$model\"}[$__range]))",
+          "expr": "sum(sum_over_time(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
           "refId": "A"
         }
       ]
@@ -171,7 +194,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"]
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "colorMode": "background",
         "graphMode": "none"
@@ -196,12 +221,11 @@
       },
       "targets": [
         {
-          "expr": "sum(sum_over_time(opencode_llm_call_cost_usd{provider=~\"$provider\",model=~\"$model\"}[$__range]))",
+          "expr": "sum(sum_over_time(harness_usage_cost_usd{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
           "refId": "A"
         }
       ]
     },
-
     {
       "type": "stat",
       "title": "Avg Daily Cost (USD)",
@@ -218,7 +242,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"]
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "colorMode": "background",
         "graphMode": "none"
@@ -243,12 +269,11 @@
       },
       "targets": [
         {
-          "expr": "(sum(sum_over_time(opencode_llm_call_cost_usd{provider=~\"$provider\",model=~\"$model\"}[$__range])) / ($__range_s / 86400)) and on() (vector($__range_s) >= 86400)",
+          "expr": "(sum(sum_over_time(harness_usage_cost_usd{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range])) / ($__range_s / 86400)) and on() (vector($__range_s) >= 86400)",
           "refId": "A"
         }
       ]
     },
-
     {
       "type": "stat",
       "title": "Cache Hit Rate",
@@ -265,7 +290,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"]
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "colorMode": "background",
         "graphMode": "none"
@@ -290,12 +317,12 @@
       },
       "targets": [
         {
-          "expr": "sum(sum_over_time(opencode_llm_call_tokens{type=\"cache_read\",provider=~\"$provider\",model=~\"$model\"}[$__range])) / sum(sum_over_time(opencode_llm_call_tokens{type=~\"cache_read|input\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
+          "expr": "sum(sum_over_time(harness_usage_tokens{type=\"cache_read\",harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range])) / sum(sum_over_time(harness_usage_tokens{type=~\"input|cache_read|cache_write\",harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
           "refId": "A"
         }
-      ]
+      ],
+      "description": "Share of prompt tokens served from the provider cache: cache_read / (input + cache_read + cache_write). Cache writes are uncached prompt tokens, so they count as misses."
     },
-
     {
       "type": "text",
       "id": 9,
@@ -316,7 +343,6 @@
         "uid": "PBFA97CFB590B2093"
       }
     },
-
     {
       "type": "piechart",
       "title": "Token Type Distribution",
@@ -337,7 +363,10 @@
           "displayMode": "table",
           "placement": "right",
           "width": 400,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         }
       },
       "fieldConfig": {
@@ -348,7 +377,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (type) (sum_over_time(opencode_llm_call_tokens{provider=~\"$provider\",model=~\"$model\"}[$__range]))",
+          "expr": "sum by (type) (sum_over_time(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
           "legendFormat": "{{type}}",
           "refId": "A"
         }
@@ -408,7 +437,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (provider) (sum_over_time(opencode_llm_call_tokens{provider=~\"$provider\",model=~\"$model\"}[$__interval]))",
+          "expr": "sum by (provider) (sum_over_time(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__interval]))",
           "legendFormat": "{{provider}}",
           "refId": "A"
         }
@@ -434,7 +463,10 @@
           "displayMode": "table",
           "placement": "right",
           "width": 400,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         }
       },
       "fieldConfig": {
@@ -445,7 +477,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (provider) (sum_over_time(opencode_llm_call_tokens{provider=~\"$provider\",model=~\"$model\"}[$__range]))",
+          "expr": "sum by (provider) (sum_over_time(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
           "legendFormat": "{{provider}}",
           "refId": "A"
         }
@@ -493,7 +525,7 @@
       },
       "targets": [
         {
-          "expr": "topk(8, sum by (provider, model) (sum_over_time(opencode_llm_call_tokens{provider=~\"$provider\",model=~\"$model\"}[$__interval])))",
+          "expr": "topk(8, sum by (provider, model) (sum_over_time(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__interval])))",
           "legendFormat": "{{provider}}/{{model}}",
           "refId": "A"
         }
@@ -519,7 +551,10 @@
           "displayMode": "table",
           "placement": "right",
           "width": 400,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         }
       },
       "fieldConfig": {
@@ -530,7 +565,7 @@
       },
       "targets": [
         {
-          "expr": "topk(8, sum by (provider, model) (sum_over_time(opencode_llm_call_tokens{provider=~\"$provider\",model=~\"$model\"}[$__range])))",
+          "expr": "topk(8, sum by (provider, model) (sum_over_time(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range])))",
           "legendFormat": "{{provider}}/{{model}}",
           "refId": "A"
         }
@@ -590,7 +625,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (provider) (sum_over_time(opencode_llm_call_cost_usd{provider=~\"$provider\",model=~\"$model\"}[$__interval]))",
+          "expr": "sum by (provider) (sum_over_time(harness_usage_cost_usd{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__interval]))",
           "legendFormat": "{{provider}}",
           "refId": "A"
         }
@@ -616,7 +651,10 @@
           "displayMode": "table",
           "placement": "right",
           "width": 400,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         }
       },
       "fieldConfig": {
@@ -627,7 +665,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (provider) (sum_over_time(opencode_llm_call_cost_usd{provider=~\"$provider\",model=~\"$model\"}[$__range]))",
+          "expr": "sum by (provider) (sum_over_time(harness_usage_cost_usd{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range]))",
           "legendFormat": "{{provider}}",
           "refId": "A"
         }
@@ -675,7 +713,7 @@
       },
       "targets": [
         {
-          "expr": "topk(8, sum by (provider, model) (sum_over_time(opencode_llm_call_cost_usd{provider=~\"$provider\",model=~\"$model\"}[$__interval])))",
+          "expr": "topk(8, sum by (provider, model) (sum_over_time(harness_usage_cost_usd{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__interval])))",
           "legendFormat": "{{provider}}/{{model}}",
           "refId": "A"
         }
@@ -701,7 +739,10 @@
           "displayMode": "table",
           "placement": "right",
           "width": 400,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         }
       },
       "fieldConfig": {
@@ -712,12 +753,117 @@
       },
       "targets": [
         {
-          "expr": "topk(8, sum by (provider, model) (sum_over_time(opencode_llm_call_cost_usd{provider=~\"$provider\",model=~\"$model\"}[$__range])))",
+          "expr": "topk(8, sum by (provider, model) (sum_over_time(harness_usage_cost_usd{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__range])))",
           "legendFormat": "{{provider}}/{{model}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Harness Comparison",
+      "id": 28,
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Tokens by Harness",
+      "id": 26,
+      "gridPos": {
+        "x": 0,
+        "y": 49,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (harness) (sum_over_time(harness_usage_tokens{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__interval]))",
+          "legendFormat": "{{harness}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Cost by Harness (USD)",
+      "id": 27,
+      "gridPos": {
+        "x": 12,
+        "y": 49,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (harness) (sum_over_time(harness_usage_cost_usd{harness=~\"$harness\",provider=~\"$provider\",model=~\"$model\"}[$__interval]))",
+          "legendFormat": "{{harness}}",
           "refId": "A"
         }
       ]
     }
   ]
 }
-
